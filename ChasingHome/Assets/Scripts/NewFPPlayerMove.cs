@@ -160,6 +160,7 @@ public class NewFPPlayerMove : MonoBehaviour
     public Canvas gameOverUI;
     public AudioSource aSource;
     public List<AudioClip> music;
+    
 
     void Awake()
     {
@@ -170,9 +171,8 @@ public class NewFPPlayerMove : MonoBehaviour
     void Start()
     {
         playerScale = transform.localScale;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-        changeLevel(currentLevel);
+        LockCursor();
+        ChangeLevel(currentLevel);
         aSource = GetComponent<AudioSource>();
         if (aSource == null) aSource = gameObject.AddComponent<AudioSource>();
         //jumpSound = Resources.Load<AudioClip>("jsound");
@@ -186,24 +186,9 @@ public class NewFPPlayerMove : MonoBehaviour
         {
             Movement();
         }
-        
 
-        //Raycast
-        Vector3 forward = transform.TransformDirection(Vector3.forward) * raycastLineDist;
-        Debug.DrawRay(transform.position, forward, Color.red);
 
         
-
-        if (Physics.Raycast(transform.position, forward, raycastLineDist) && hit.collider.tag == "Wall")
-        {
-            print("hit!");
-            frontWall = true;
-            
-        }
-        else
-        {
-            frontWall = false;
-        }
     }
 
     private void Update()
@@ -214,9 +199,9 @@ public class NewFPPlayerMove : MonoBehaviour
             WallRunInput();
         }
         
-        if(this.y < -15)
+        if(this.transform.position.y < -15)
         {
-            changeLevel(currentLevel);
+            ChangeLevel(currentLevel);
         }
 
         //Look();
@@ -231,32 +216,32 @@ public class NewFPPlayerMove : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.R))
         {
-            changeLevel(currentLevel);
+            ChangeLevel(currentLevel);
             deaths++;
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            changeLevel(0);
+            ChangeLevel(0);
             currentLevel = 0;
             aSource.volume = .2f;
         }
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            changeLevel(1);
+            ChangeLevel(1);
             currentLevel = 1;
             aSource.volume = .2f;
         }
         if (Input.GetKeyDown(KeyCode.Alpha3))
         {
-            changeLevel(2);
+            ChangeLevel(2);
             currentLevel = 2;
             aSource.volume = .1f;
 
         }
         if (Input.GetKeyDown(KeyCode.Alpha4))
         {
-            changeLevel(3);
+            ChangeLevel(3);
             currentLevel = 3;
             aSource.volume = .05f;
         }
@@ -274,8 +259,14 @@ public class NewFPPlayerMove : MonoBehaviour
             }
             
         }
-
-        if(!grounded)
+        if (PauseScript.GameIsPaused && Cursor.visible == false)
+        {
+            UnlockCursor();
+        } else if(!PauseScript.GameIsPaused && Cursor.visible == true)
+        {
+            LockCursor();
+        }
+        /*if(!grounded)
         {
             playerBody.GetComponent<Animator>().SetBool("Running", false);
             if(startMoving)
@@ -283,7 +274,7 @@ public class NewFPPlayerMove : MonoBehaviour
                 playerBody.GetComponent<Animator>().SetBool("Jumping", true);
             }
             
-        }
+        }*/
         if(currentLevel == 4)
         {
             gameOver = true;
@@ -293,13 +284,49 @@ public class NewFPPlayerMove : MonoBehaviour
             
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
+
+        //Raycast
+        Vector3 forward = transform.TransformDirection(Vector3.forward) * raycastLineDist;
+        Debug.DrawRay(transform.position, forward, Color.red);
+
+
+
+        if (Physics.Raycast(transform.position, forward, raycastLineDist) && (hit.collider.CompareTag("Wall") || hit.collider.CompareTag("Ground")))
+        {
+            print("hit!");
+            frontWall = true;
+            rb.velocity = Vector3.zero;
+
+        }
+        else
+        {
+            frontWall = false;
+        }
+    }
+
+    public void UnlockCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    public void LockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
     
+    public void SetFront()
+    {
+        frontWall = true;
+
+        grounded = false;
+    }
     public void QuitGame()
     {
         Application.Quit();
     }
-    public void changeLevel(int i)
+    public void ChangeLevel(int i)
     {
         
         GameObject o = Spawns[i];
@@ -327,11 +354,11 @@ public class NewFPPlayerMove : MonoBehaviour
         }
         if (currentLevel == 1)
         {
-            speed = 12;
+            speed = 8;
         }
         if (currentLevel == 2)
         {
-            speed = 9;
+            speed = 8;
         }
 
         if(i == 4)
@@ -884,7 +911,7 @@ public class NewFPPlayerMove : MonoBehaviour
             if (deathAllowed)
             {
                 death = true;
-                changeLevel(currentLevel);
+                ChangeLevel(currentLevel);
                 deaths++;
             }
         }
@@ -896,7 +923,7 @@ public class NewFPPlayerMove : MonoBehaviour
                 gameOver = true;
             }
             currentLevel++;
-            changeLevel(currentLevel);
+            ChangeLevel(currentLevel);
         }
     }
 
