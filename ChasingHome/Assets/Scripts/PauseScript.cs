@@ -8,8 +8,8 @@ public class PauseScript : MonoBehaviour
     public static bool GameIsPaused = false;
 
     public GameObject pauseMenuUI;
-    
 
+    
     // Update is called once per frame
     void Update()
     {
@@ -47,7 +47,7 @@ public class PauseScript : MonoBehaviour
 
     public void LoadMenu()
     {
-        SceneManager.LoadScene("Menu");
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex - 1);
         Debug.Log("menu");
     }
 

@@ -153,7 +153,6 @@ public class NewFPPlayerMove : MonoBehaviour
     public bool deathAllowed = true;
     public float raycastLineDist = 1;
     private bool frontWall = false;
-    RaycastHit hit;
     public Camera camera;
 
     public int currentLevel = 0;
@@ -166,12 +165,15 @@ public class NewFPPlayerMove : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         startMaxSpeed = maxSpeed;
+        LockCursor();
+        PauseScript.GameIsPaused = false;
+        Time.timeScale = 1f;
     }
 
     void Start()
     {
         playerScale = transform.localScale;
-        LockCursor();
+        
         ChangeLevel(currentLevel);
         aSource = GetComponent<AudioSource>();
         if (aSource == null) aSource = gameObject.AddComponent<AudioSource>();
@@ -180,15 +182,51 @@ public class NewFPPlayerMove : MonoBehaviour
     }
 
 
+
     private void FixedUpdate()
     {
-        if(startMoving && !gameOver)
+        
+
+        //Raycast
+        RaycastHit hit;
+        Vector3 forward = transform.TransformDirection(Vector3.forward) * .5f;
+        Ray ray = new Ray(transform.position, transform.forward * 40);
+        //Debug.DrawRay(transform.position, forward, Color.red);
+        //Debug.DrawRay(transform.position, -Vector3.up, Color.red);
+        
+        if(Physics.Raycast(ray, out hit, .5f))
         {
-            Movement();
+            if (hit.collider.CompareTag("RightWall") || hit.collider.CompareTag("LeftWall") || hit.collider.CompareTag("Ground"))
+            {
+                print("hit! " + hit.collider.tag);
+                frontWall = true;
+                rb.velocity = Vector3.zero;
+                ChangeLevel(currentLevel);
+            
+            }
+        }
+        else
+        {
+            frontWall = false;
         }
 
 
-        
+        /*if (Physics.Raycast(transform.position, forward, 40))
+        {
+            if (hit.collider.CompareTag("Wall") || hit.collider.CompareTag("Ground"))
+            {
+
+            }
+            print("hit! " + hit.collider.tag);
+            frontWall = true;
+            rb.velocity = Vector3.zero;
+
+        }
+        else
+        {
+            frontWall = false;
+        }*/
+
     }
 
     private void Update()
@@ -197,6 +235,7 @@ public class NewFPPlayerMove : MonoBehaviour
         {
             MyInput();
             WallRunInput();
+            Movement();
         }
         
         if(this.transform.position.y < -15)
@@ -212,6 +251,7 @@ public class NewFPPlayerMove : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.W))
         {
             startMoving = true;
+            grounded = true;
         }
 
         if (Input.GetKeyDown(KeyCode.R))
@@ -262,7 +302,8 @@ public class NewFPPlayerMove : MonoBehaviour
         if (PauseScript.GameIsPaused && Cursor.visible == false)
         {
             UnlockCursor();
-        } else if(!PauseScript.GameIsPaused && Cursor.visible == true)
+        }
+        else if (!PauseScript.GameIsPaused && Cursor.visible == true)
         {
             LockCursor();
         }
@@ -275,7 +316,7 @@ public class NewFPPlayerMove : MonoBehaviour
             }
             
         }*/
-        if(currentLevel == 4)
+        if (currentLevel == 4)
         {
             gameOver = true;
         }
@@ -285,23 +326,7 @@ public class NewFPPlayerMove : MonoBehaviour
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
 
-        //Raycast
-        Vector3 forward = transform.TransformDirection(Vector3.forward) * raycastLineDist;
-        Debug.DrawRay(transform.position, forward, Color.red);
-
-
-
-        if (Physics.Raycast(transform.position, forward, raycastLineDist) && (hit.collider.CompareTag("Wall") || hit.collider.CompareTag("Ground")))
-        {
-            print("hit!");
-            frontWall = true;
-            rb.velocity = Vector3.zero;
-
-        }
-        else
-        {
-            frontWall = false;
-        }
+        
     }
 
     public void UnlockCursor()
@@ -331,10 +356,11 @@ public class NewFPPlayerMove : MonoBehaviour
         
         GameObject o = Spawns[i];
         rb.velocity = Vector3.zero;
-        this.gameObject.transform.position = o.transform.position;
+        transform.position = o.transform.position;
         death = false;
         startMoving = false;
         justPortaled = false;
+        grounded = true;
         
         
         
@@ -348,6 +374,8 @@ public class NewFPPlayerMove : MonoBehaviour
         
         playerBody.GetComponent<Animator>().SetBool("Running", false);
         playerBody.GetComponent<Animator>().SetBool("Jumping", false);
+        playerBody.GetComponent<Animator>().SetBool("RightWall", false);
+        playerBody.GetComponent<Animator>().SetBool("LeftWall", false);
         if (currentLevel == 0 || currentLevel == 3)
         {
             speed = 8;
@@ -842,7 +870,7 @@ public class NewFPPlayerMove : MonoBehaviour
     /// <summary>
     /// Handle ground detection
     /// </summary>
-    private void OnCollisionStay(Collision other)
+    /*private void OnCollisionStay(Collision other)
     {
         //Make sure we are only checking for walkable layers
         int layer = other.gameObject.layer;
@@ -869,7 +897,7 @@ public class NewFPPlayerMove : MonoBehaviour
             cancellingGrounded = true;
             Invoke(nameof(StopGrounded), Time.deltaTime * delay);
         }
-    }
+    }*/
 
     void OnCollisionEnter(Collision other)
     {
@@ -958,10 +986,10 @@ public class NewFPPlayerMove : MonoBehaviour
         }
 
 
-        if (other.gameObject.tag == "Death")
+        /*if (other.gameObject.tag == "Death")
         {
             death = false;
-        }
+        }*/
     }
 
     private void StopGrounded()
