@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CharacterFront : MonoBehaviour
+public class FrontWallCheck : MonoBehaviour
 {
-    public GameObject player;
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -17,16 +17,13 @@ public class CharacterFront : MonoBehaviour
         
     }
 
-    void OnCollisionEnter(Collision other)
+    private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "Ground")
+        if(other.CompareTag("Ground"))
         {
-
-
-            player.GetComponent<NewFPPlayerMove>().SetFront();
-
+            NewFPPlayerMove.frontWall = true;
+            Debug.Log("FrontWAll Script Detected");
+            
         }
-
-        
     }
 }

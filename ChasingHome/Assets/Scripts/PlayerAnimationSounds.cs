@@ -6,18 +6,11 @@ public class PlayerAnimationSounds : MonoBehaviour
 {
     AudioSource animationSoundPlayer;
     public List<AudioClip> music;
-    // Start is called before the first frame update
+
     void Start()
     {
         animationSoundPlayer = GetComponent<AudioSource>();
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     private void PlayerFootstepSound()
     {
         animationSoundPlayer.Stop();

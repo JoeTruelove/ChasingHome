@@ -18,6 +18,7 @@ public class NewFPPlayerMove : MonoBehaviour
     private bool justLeftWalled = false;
     static int deaths = 0;
     public bool gameOver = false;
+    public bool dennisChangesEnabled = false;
 
     private void WallRunInput() //make sure to call in void Update
     {
@@ -152,14 +153,14 @@ public class NewFPPlayerMove : MonoBehaviour
     public bool justPortaled = false;
     public bool deathAllowed = true;
     public float raycastLineDist = 1;
-    private bool frontWall = false;
+    public static bool frontWall = false;
     public Camera camera;
 
     public int currentLevel = 0;
     public Canvas gameOverUI;
     public AudioSource aSource;
     public List<AudioClip> music;
-    
+
 
     void Awake()
     {
@@ -173,7 +174,7 @@ public class NewFPPlayerMove : MonoBehaviour
     void Start()
     {
         playerScale = transform.localScale;
-        
+
         ChangeLevel(currentLevel);
         aSource = GetComponent<AudioSource>();
         if (aSource == null) aSource = gameObject.AddComponent<AudioSource>();
@@ -185,7 +186,7 @@ public class NewFPPlayerMove : MonoBehaviour
 
     private void FixedUpdate()
     {
-        
+
 
         //Raycast
         RaycastHit hit;
@@ -193,22 +194,89 @@ public class NewFPPlayerMove : MonoBehaviour
         Ray ray = new Ray(transform.position, transform.forward * 40);
         //Debug.DrawRay(transform.position, forward, Color.red);
         //Debug.DrawRay(transform.position, -Vector3.up, Color.red);
-        
-        if(Physics.Raycast(ray, out hit, .5f))
+
+        if (Physics.Raycast(ray, out hit, .5f))
         {
             if (hit.collider.CompareTag("RightWall") || hit.collider.CompareTag("LeftWall") || hit.collider.CompareTag("Ground"))
             {
                 print("hit! " + hit.collider.tag);
                 frontWall = true;
-                rb.velocity = Vector3.zero;
-                ChangeLevel(currentLevel);
-            
+                // rb.velocity = Vector3.zero;
+                playerBody.GetComponent<Animator>().SetBool("FrontWall", true);
+                if (!dennisChangesEnabled)
+                {
+                    ChangeLevel(currentLevel);
+                }
             }
         }
         else
         {
+            playerBody.GetComponent<Animator>().SetBool("FrontWall", false);
             frontWall = false;
         }
+
+        // Handle player velocity
+        if (dennisChangesEnabled)
+        {
+            if (!frontWall && startMoving)
+            {
+                Vector3 newVelocity = rb.velocity;
+                newVelocity.z = Time.fixedDeltaTime * speed;
+
+                if (onWall)
+                {
+                    newVelocity.y = 0;
+                    //Debug.Log("is On");
+                }
+
+                rb.velocity = newVelocity;
+            }
+        }
+        else
+        {
+            //transform.Translate(Vector3.forward * Time.deltaTime * speed);
+        }
+        Debug.Log(grounded);
+        Debug.Log(frontWall);
+        if(frontWall)
+        {
+            Vector3 newVelocity = rb.velocity;
+            newVelocity.z = Time.fixedDeltaTime * speed;
+            newVelocity.y = -35;
+            newVelocity.x = -2;
+            playerBody.GetComponent<Animator>().SetBool("FrontWall", true);
+            grounded = false;
+            rb.velocity = newVelocity;
+        }
+
+        Ray checkGround = new Ray(transform.position, -transform.up);
+        RaycastHit gHit;
+
+        if (Physics.Raycast(checkGround, out gHit, 1))
+        {
+            if(gHit.collider.CompareTag("Ground"))
+            {
+                grounded = true;
+                Debug.Log("i'm grounded");
+            }
+        }
+        else
+        {
+            grounded = false;
+        }
+
+
+        if (grounded && frontWall)
+        {
+            if (Physics.Raycast(checkGround, out gHit, 1))
+            {
+                grounded = true;
+                onWall = false;
+                Debug.Log("i'm grounded");
+            }
+        }
+
+        //if(!grounded && playerBody.GetComponent<Animator>().GetBool("")
 
 
         /*if (Physics.Raycast(transform.position, forward, 40))
@@ -231,14 +299,14 @@ public class NewFPPlayerMove : MonoBehaviour
 
     private void Update()
     {
-        if(startMoving && !gameOver)
+        if (startMoving && !gameOver)
         {
             MyInput();
             WallRunInput();
             Movement();
         }
-        
-        if(this.transform.position.y < -15)
+
+        if (this.transform.position.y < -15)
         {
             ChangeLevel(currentLevel);
         }
@@ -246,8 +314,9 @@ public class NewFPPlayerMove : MonoBehaviour
         //Look();
         CheckForWall();
         SonicSpeed();
-        
 
+        //Debug.Log(rb.velocity);
+        //Debug.Log(rb.useGravity);
         if (Input.GetKeyDown(KeyCode.W))
         {
             startMoving = true;
@@ -292,12 +361,16 @@ public class NewFPPlayerMove : MonoBehaviour
 
         if (!frontWall && startMoving)
         {
-            transform.Translate(Vector3.forward * Time.deltaTime * speed);
-            if(grounded)
+            // if (!dennisChangesEnabled)
+            // {
+            //     transform.Translate(Vector3.forward * Time.deltaTime * speed);
+            // }
+
+            if (grounded)
             {
                 playerBody.GetComponent<Animator>().SetBool("Running", true);
             }
-            
+
         }
         if (PauseScript.GameIsPaused && Cursor.visible == false)
         {
@@ -320,13 +393,11 @@ public class NewFPPlayerMove : MonoBehaviour
         {
             gameOver = true;
         }
-        if(gameOver)
+        if (gameOver)
         {
-            
+
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
-
-        
     }
 
     public void UnlockCursor()
@@ -340,20 +411,15 @@ public class NewFPPlayerMove : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
-    
-    public void SetFront()
-    {
-        frontWall = true;
 
-        grounded = false;
-    }
+    
     public void QuitGame()
     {
         Application.Quit();
     }
     public void ChangeLevel(int i)
     {
-        
+
         GameObject o = Spawns[i];
         rb.velocity = Vector3.zero;
         transform.position = o.transform.position;
@@ -361,35 +427,35 @@ public class NewFPPlayerMove : MonoBehaviour
         startMoving = false;
         justPortaled = false;
         grounded = true;
-        
-        
-        
+
+
+
         timesJumped = 0;
         //PortalAnimator(i);
 
-        
+
         ChangeMusic(music[i]);
-        
-        
-        
+
+
+
         playerBody.GetComponent<Animator>().SetBool("Running", false);
         playerBody.GetComponent<Animator>().SetBool("Jumping", false);
         playerBody.GetComponent<Animator>().SetBool("RightWall", false);
         playerBody.GetComponent<Animator>().SetBool("LeftWall", false);
-        if (currentLevel == 0 || currentLevel == 3)
-        {
-            speed = 8;
-        }
-        if (currentLevel == 1)
-        {
-            speed = 8;
-        }
-        if (currentLevel == 2)
-        {
-            speed = 8;
-        }
+        // if (currentLevel == 0 || currentLevel == 3)
+        // {
+        //     speed = 8;
+        // }
+        // if (currentLevel == 1)
+        // {
+        //     speed = 8;
+        // }
+        // if (currentLevel == 2)
+        // {
+        //     speed = 8;
+        // }
 
-        if(i == 4)
+        if (i == 4)
         {
             gameOver = true;
         }
@@ -398,14 +464,14 @@ public class NewFPPlayerMove : MonoBehaviour
     public void PortalAnimator(int i)
     {
         GameObject o = Portals[i];
-        if(i != 0)
+        if (i != 0)
         {
             GameObject e = Portals[i - 1];
             e.GetComponent<Animator>().SetBool("IsOn", false);
         }
-        
+
         o.GetComponent<Animator>().SetBool("IsOn", true);
-        
+
 
 
     }
@@ -418,17 +484,17 @@ public class NewFPPlayerMove : MonoBehaviour
         x = Input.GetAxisRaw("Horizontal");
         y = Input.GetAxisRaw("Vertical");
         jumping = Input.GetButton("Jump");
-        crouching = Input.GetKey(KeyCode.LeftShift);
+        //crouching = Input.GetKey(KeyCode.LeftShift);
 
         //Crouching
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        /*if (Input.GetKeyDown(KeyCode.LeftShift))
             StartCrouch();
         if (Input.GetKeyUp(KeyCode.LeftShift))
-            StopCrouch();
+            StopCrouch();*/
 
         //Double Jumping
-        
-        
+
+
         if (Input.GetButtonDown("Jump") && ((grounded || (timesJumped < 2 && onWall)) && startMoving))
         {
             Jump();
@@ -436,15 +502,20 @@ public class NewFPPlayerMove : MonoBehaviour
             doubleJumpsLeft--;
             timesJumped++;
             //aSource.PlayOneShot(jumpSound);
+
+            if (dennisChangesEnabled)
+            {
+                onWall = false;
+            }
         }
 
         //Dashing
-        if (Input.GetKeyDown(KeyCode.W) && wTapTimes <= 1)
+        /*if (Input.GetKeyDown(KeyCode.W) && wTapTimes <= 1)
         {
             wTapTimes++;
             Invoke("ResetTapTimes", 0.3f);
         }
-        if (wTapTimes == 2 && readyToDash) Dash();
+        if (wTapTimes == 2 && readyToDash) Dash();*/
 
         //SideFlash
         if (Input.GetKeyDown(KeyCode.Mouse1) && flashesLeft > 0 && x > 0) SideFlash(true);
@@ -604,7 +675,7 @@ public class NewFPPlayerMove : MonoBehaviour
             if (isWallRight || isWallLeft && Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D)) rb.AddForce(-orientation.up * jumpForce * 1f);
             if (isWallRight && Input.GetKey(KeyCode.A)) rb.AddForce(-orientation.right * jumpForce * 3.2f);
             if (isWallLeft && Input.GetKey(KeyCode.D)) rb.AddForce(orientation.right * jumpForce * 3.2f);
-            
+
 
             //Always add forward force
             rb.AddForce(orientation.forward * jumpForce * 1f);
@@ -621,7 +692,7 @@ public class NewFPPlayerMove : MonoBehaviour
         readyToJump = true;
     }
 
-    private void Dash()
+    /*private void Dash()
     {
         //saves current velocity
         dashStartVector = orientation.forward;
@@ -639,7 +710,7 @@ public class NewFPPlayerMove : MonoBehaviour
         rb.AddForce(orientation.forward * dashForce);
 
         Invoke("ActivateGravity", dashTime);
-    }
+    }*/
     private void ActivateGravity()
     {
         rb.useGravity = true;
@@ -906,8 +977,6 @@ public class NewFPPlayerMove : MonoBehaviour
             grounded = true;
             playerBody.GetComponent<Animator>().SetBool("Jumping", false);
             timesJumped = 0;
-
-            
         }
 
         if (other.gameObject.tag == "LeftWall")
@@ -946,12 +1015,16 @@ public class NewFPPlayerMove : MonoBehaviour
 
         if (other.gameObject.tag == "Portal")
         {
-            if(currentLevel == 3)
+            Debug.Log("just hit Portal");
+            if (currentLevel == 3)
             {
                 gameOver = true;
             }
-            currentLevel++;
-            ChangeLevel(currentLevel);
+            if(currentLevel != 3)
+            {
+                currentLevel++;
+                ChangeLevel(currentLevel);
+            }
         }
     }
 
@@ -971,7 +1044,12 @@ public class NewFPPlayerMove : MonoBehaviour
 
         if (other.gameObject.tag == "LeftWall")
         {
-            onWall = false;
+            if (dennisChangesEnabled)
+            {
+                onWall = false;
+            }
+            //StopWallRun();
+            ActivateGravity();
             justLeftWalled = true;
             justRightWalled = false;
             playerBody.GetComponent<Animator>().SetBool("LeftWall", false);
@@ -979,7 +1057,12 @@ public class NewFPPlayerMove : MonoBehaviour
 
         if (other.gameObject.tag == "RightWall")
         {
-            onWall = false;
+            if (dennisChangesEnabled)
+            {
+                onWall = false;
+            }
+            //StopWallRun();
+            ActivateGravity();
             justRightWalled = true;
             justLeftWalled = false;
             playerBody.GetComponent<Animator>().SetBool("RightWall", false);

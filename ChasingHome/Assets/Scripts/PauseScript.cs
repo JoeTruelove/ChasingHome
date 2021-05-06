@@ -6,11 +6,8 @@ using UnityEngine.SceneManagement;
 public class PauseScript : MonoBehaviour
 {
     public static bool GameIsPaused = false;
-
     public GameObject pauseMenuUI;
 
-    
-    // Update is called once per frame
     void Update()
     {
         if(Input.GetKeyDown(KeyCode.Escape))
@@ -30,11 +27,8 @@ public class PauseScript : MonoBehaviour
         pauseMenuUI.SetActive(false);
         Time.timeScale = 1f;
         GameIsPaused = false;
-        /*Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;*/
         Debug.Log("resume");
     }
-
     public void Pause()
     {
         pauseMenuUI.SetActive(true);
